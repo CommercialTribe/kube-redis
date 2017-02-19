@@ -30,7 +30,7 @@ deploy:
     on:
       branch: master
   - provider: script
-    script: ./deploy.sh staging gke_commercial-tribe_us-east1-c_production production
+    script: ./deploy.sh production gke_commercial-tribe_us-east1-c_production production
     on:
       tags: true
       condition: $TRAVIS_TAG =~ ^v20.*$

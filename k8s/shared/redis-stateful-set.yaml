@@ -3,7 +3,7 @@ kind: StatefulSet
 metadata:
   name: redis
 spec:
-  serviceName: "redis"
+  serviceName: "redis-cluster"
   replicas: 6
   template:
     metadata:

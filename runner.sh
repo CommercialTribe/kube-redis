@@ -3,8 +3,8 @@ set -e
 
 # Set vars
 replicas=${REPLICAS-1}              # number of replicas
-ip=${POD_ID-`hostname -i`}          # ip address of pod
-redis_port=${REDIS_PORT-6379}       # redis port
+ip=${POD_IP-`hostname -i`}          # ip address of pod
+redis_port=${REDIS_NODE_PORT-6379}  # redis port
 min_hosts=$(((1 + $replicas) * 3))  # the minimum number of hosts
 this_host="$ip:$redis_port"         # this host
 

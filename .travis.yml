@@ -1,5 +1,7 @@
 sudo: required
 language: bash
+services:
+  - docker
 env:
   global:
     - CLOUDSDK_CONTAINER_USE_CLIENT_CERTIFICATE=True

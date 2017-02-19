@@ -51,15 +51,13 @@ spec:
             items:
               - key: redis.conf
                 path: redis.conf
-        - name: redis-data
-          emptyDir: {}
-  # volumeClaimTemplates:
-  #   - metadata:
-  #       name: redis-data
-  #       annotations:
-  #         volume.beta.kubernetes.io/storage-class: "ssd"
-  #     spec:
-  #       accessModes: [ "ReadWriteOnce" ]
-  #       resources:
-  #         requests:
-  #           storage: 20Gi
+  volumeClaimTemplates:
+    - metadata:
+        name: redis-data
+        annotations:
+          volume.beta.kubernetes.io/storage-class: "ssd"
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 20Gi

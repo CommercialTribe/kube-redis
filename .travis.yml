@@ -1,0 +1,34 @@
+sudo: required
+language: bash
+env:
+  global:
+    - CLOUDSDK_CONTAINER_USE_CLIENT_CERTIFICATE=True
+before_deploy:
+  - CLOUDSDK_CORE_DISABLE_PROMPTS=true sudo gcloud components update kubectl --version 142.0.0
+  - export PATH=$PATH:/usr/lib/google-cloud-sdk/bin
+  - sudo chown -R $USER /home/travis/.config/gcloud
+  - echo $GCLOUD_ENCODED_CREDS | base64 -d > /tmp/gcloud.json
+  - gcloud auth activate-service-account $(jq -r ".client_email" /tmp/gcloud.json) --key-file=/tmp/gcloud.json
+  - gcloud config set project commercial-tribe
+  - gcloud config set compute/zone us-east1-c
+  - gcloud container clusters get-credentials staging
+  - gcloud container clusters get-credentials production
+  - git fetch
+deploy:
+  - provider: script
+    script: ./build-and-push.sh
+    on:
+      branch: master
+  - provider: script
+    script: ./deploy.sh develop gke_commercial-tribe_us-east1-c_staging development
+    on:
+      branch: develop
+  - provider: script
+    script: ./deploy.sh staging gke_commercial-tribe_us-east1-c_staging production
+    on:
+      branch: master
+  - provider: script
+    script: ./deploy.sh staging gke_commercial-tribe_us-east1-c_production production
+    on:
+      tags: true
+      condition: $TRAVIS_TAG =~ ^v20.*$

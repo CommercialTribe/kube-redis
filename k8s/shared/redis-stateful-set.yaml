@@ -1,0 +1,65 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: redis
+spec:
+  serviceName: "redis"
+  replicas: 6
+  template:
+    metadata:
+      labels:
+        service: redis
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+        - name: redis
+          image: redis
+          args:
+            - /config/redis.conf
+          ports:
+            - name: redis
+              containerPort: 6379
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data/db
+            - name: redis-config
+              mountPath: /config
+            - name: redis-overrides
+              mountPath: /overrides
+        - name: redis-sidecar
+          image: commercialtribe/redis-sidecar:latest
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: pod-info
+              mountPath: /etc/pod-info
+      volumes:
+        - name: pod-info
+          downwardAPI:
+            items:
+              - path: labels
+                fieldRef:
+                  fieldPath: metadata.labels
+        - name: redis-config
+          configMap:
+            name: redis
+            items:
+              - key: redis.conf
+                path: redis.conf
+        - name: redis-overrides
+          configMap:
+            name: redis-overrides
+            items:
+              - key: redis.conf
+                path: redis.conf
+        - name: redis-data
+          emptyDir: {}
+  # volumeClaimTemplates:
+  #   - metadata:
+  #       name: redis-data
+  #       annotations:
+  #         volume.beta.kubernetes.io/storage-class: "ssd"
+  #     spec:
+  #       accessModes: [ "ReadWriteOnce" ]
+  #       resources:
+  #         requests:
+  #           storage: 20Gi

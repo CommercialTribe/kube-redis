@@ -10,4 +10,4 @@ spec:
     - port: 6379
       name: redis
   selector:
-    service: redis
+    name: redis-cluster-node

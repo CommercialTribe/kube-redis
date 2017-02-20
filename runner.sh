@@ -44,7 +44,7 @@ start-loop(){
   while true ; do
     if [[ `hostname` =~ -0$ ]] ; then # Allow the first host to manage the cluster
       echo "Managing cluster..."
-      hosts=`kubectl get pods -l=$labels --template="{{range \\$i, \\$e :=.items}}{{\\$e.status.podIP}}:$redis_port {{end}}" | sed "s/ $//" | tr " " "\n"`
+      hosts=`kubectl get pods -l=$labels --template="{{range \\$i, \\$e :=.items}}{{\\$e.status.podIP}}:$redis_port {{end}}" | sed "s/ $//" | tr " " "\n" | grep -E "^[0-9]"`
       host_count=`echo "$hosts" | wc -l | tr -d " "`
       if [[ "$host_count" -ge "$min_hosts" ]] ; then # wait for the available hosts to be greater than the minimum required
         if ! status ; then # If the cluster has not initialized, then initialize it

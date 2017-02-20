@@ -1,14 +1,14 @@
 apiVersion: apps/v1beta1
 kind: StatefulSet
 metadata:
-  name: redis
+  name: redis-cluster
 spec:
-  serviceName: "redis-cluster"
+  serviceName: redis-cluster
   replicas: 6
   template:
     metadata:
       labels:
-        service: redis
+        name: redis-cluster-node
     spec:
       terminationGracePeriodSeconds: 10
       containers:
@@ -22,9 +22,9 @@ spec:
           volumeMounts:
             - name: redis-data
               mountPath: /data/db
-            - name: redis-config
+            - name: redis-cluster-config
               mountPath: /config
-            - name: redis-overrides
+            - name: redis-cluster-overrides
               mountPath: /overrides
         - name: redis-sidecar
           image: commercialtribe/redis-sidecar:latest
@@ -39,15 +39,15 @@ spec:
               - path: labels
                 fieldRef:
                   fieldPath: metadata.labels
-        - name: redis-config
+        - name: redis-cluster-config
           configMap:
-            name: redis
+            name: redis-cluster
             items:
               - key: redis.conf
                 path: redis.conf
-        - name: redis-overrides
+        - name: redis-cluster-overrides
           configMap:
-            name: redis-overrides
+            name: redis-cluster-overrides
             items:
               - key: redis.conf
                 path: redis.conf

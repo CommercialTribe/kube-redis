@@ -1,7 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: redis-cluster-overrides
-data:
-  redis.conf: |
-    # Cluster overrides

@@ -5,8 +5,6 @@ metadata:
 data:
   # Use the following file for reference http://download.redis.io/redis-stable/redis.conf
   node.conf: |
-    include /overrides/redis.conf
-
     protected-mode no
     port 6379
     tcp-backlog 511

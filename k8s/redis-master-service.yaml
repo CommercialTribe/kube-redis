@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: redis-master
+  name: redis
   labels:
-    name: redis-master
+    service: redis
 spec:
   ports:
     - port: 6379

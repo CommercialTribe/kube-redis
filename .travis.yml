@@ -22,15 +22,15 @@ deploy:
     on:
       branch: master
   - provider: script
-    script: ./deploy.sh develop gke_commercial-tribe_us-east1-c_staging development
+    script: ./deploy.sh develop gke_commercial-tribe_us-east1-c_staging
     on:
       branch: develop
   - provider: script
-    script: ./deploy.sh staging gke_commercial-tribe_us-east1-c_staging production
+    script: ./deploy.sh staging gke_commercial-tribe_us-east1-c_staging
     on:
       branch: master
   - provider: script
-    script: ./deploy.sh production gke_commercial-tribe_us-east1-c_production production
+    script: ./deploy.sh production gke_commercial-tribe_us-east1-c_production
     on:
       tags: true
       condition: $TRAVIS_TAG =~ ^v20.*$

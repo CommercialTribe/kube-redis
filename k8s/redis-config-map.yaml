@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-sentinel
+data:
+  # Use the following file for reference http://download.redis.io/redis-stable/redis.conf
+  node.conf: |
+    protected-mode no
+    port 6379
+    tcp-backlog 511
+    loglevel notice
+    logfile ""
+    dir /data

@@ -1,5 +1,16 @@
 #!/usr/bin/env bash
-image=commercialtribe/redis-sidecar
-docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
-docker build -t $image .
-docker push $image
+image="commercialtribe/redis-sentinel-sidecar"
+
+login(){
+  docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+}
+
+push(){
+  docker push $image
+}
+
+build() {
+  docker build -t $image .
+}
+
+build && (push || (login && push))

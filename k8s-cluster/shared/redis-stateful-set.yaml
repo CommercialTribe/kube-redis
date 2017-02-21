@@ -12,6 +12,7 @@ spec:
     spec:
       terminationGracePeriodSeconds: 10
       containers:
+        # Redis
         - name: redis
           image: redis
           args:
@@ -26,8 +27,10 @@ spec:
               mountPath: /config
             - name: redis-cluster-overrides
               mountPath: /overrides
-        - name: redis-sidecar
-          image: commercialtribe/redis-sidecar:latest
+
+        # Sidecar
+        - name: sidecar
+          image: commercialtribe/redis-cluster-sidecar:latest
           imagePullPolicy: Always
           volumeMounts:
             - name: pod-info

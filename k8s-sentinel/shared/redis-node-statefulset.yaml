@@ -1,0 +1,93 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: redis-sentinel
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+spec:
+  serviceName: redis-sentinel
+  replicas: 5
+  template:
+    metadata:
+      labels:
+        name: redis-sentinel-node
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+        # Redis
+        - name: redis
+          image: redis:3.2
+          command:
+            - redis-server
+          args:
+            - /config/node.conf
+          ports:
+            - name: redis
+              containerPort: 6379
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: redis-config
+              mountPath: /config
+            - name: redis-overrides
+              mountPath: /overrides
+          livenessProbe: &healthcheck
+            exec:
+              command: [ "redis-cli", "ping" ]
+          readinessProbe:
+            <<: *healthcheck
+
+        # Sentinel
+        - name: sentinel
+          image: redis:3.2
+          command: [ "bash", "-c", "touch sentinel.conf && redis-sentinel sentinel.conf" ]
+          ports:
+            - name: sentinel
+              containerPort: 26379
+          livenessProbe: &healthcheck
+            exec:
+              command: [ "redis-cli", "-p", "26379", "ping" ]
+          readinessProbe:
+            <<: *healthcheck
+
+        # Sidecar
+        - name: sidecar
+          image: commercialtribe/redis-sentinel-sidecar:latest
+          imagePullPolicy: Always
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: DEBUG
+              value: "true"
+          volumeMounts:
+            - name: pod-info
+              mountPath: /etc/pod-info
+          readinessProbe:
+            exec:
+              command: [ "cat", "booted" ]
+
+      volumes:
+        - name: pod-info
+          downwardAPI:
+            items:
+              - path: labels
+                fieldRef:
+                  fieldPath: metadata.labels
+        - name: redis-config
+          configMap:
+            name: redis-sentinel
+        - name: redis-overrides
+          configMap:
+            name: redis-sentinel-overrides
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        annotations:
+          volume.beta.kubernetes.io/storage-class: "ssd"
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 20Gi

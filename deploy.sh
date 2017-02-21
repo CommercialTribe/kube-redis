@@ -1,3 +1,5 @@
 #!/usr/bin/env bash
-kubectl --namespace="$1" --context="$2" apply -Rf=./k8s/shared
-kubectl --namespace="$1" --context="$2" apply -Rf=./k8s/$3
+dir=${TYPE-"cluster"}
+action=${ACTION-"apply"}
+kubectl --namespace="$1" --context="$2" $action -Rf=./k8s-$TYPE/shared
+kubectl --namespace="$1" --context="$2" $action -Rf=./k8s-$TYPE/$3

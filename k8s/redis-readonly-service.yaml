@@ -9,5 +9,5 @@ spec:
     - port: 6379
       name: redis
   selector:
-    name: redis-sentinel-node
+    name: redis-node
     role: slave

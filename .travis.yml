@@ -39,7 +39,7 @@ deploy:
     on:
       branch: master
   - provider: script
-    script: ./deploy.sh gke_commercial-tribe-staging_us-central1-a_staging production
+    script: ./deploy.sh gke_commercial-tribe_us-east1-c_production production
     on:
       tags: true
       condition: $TRAVIS_TAG =~ ^v20[0-9]{2}\.[1-4]\.[1-6]\.[0-9]+$

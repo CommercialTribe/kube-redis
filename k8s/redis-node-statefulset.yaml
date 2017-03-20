@@ -29,6 +29,10 @@ spec:
               mountPath: /data
             - name: redis-config
               mountPath: /config
+          resources:
+            requests:
+              cpu: 100m
+              memory: 1Gi
           livenessProbe: &healthcheck
             exec:
               command: [ "redis-cli", "ping" ]
@@ -42,6 +46,10 @@ spec:
           ports:
             - name: sentinel
               containerPort: 26379
+          resources:
+            requests:
+              cpu: 25m
+              memory: 50mi
           livenessProbe: &healthcheck
             exec:
               command: [ "redis-cli", "-p", "26379", "ping" ]
@@ -63,6 +71,10 @@ spec:
           readinessProbe:
             exec:
               command: [ "cat", "booted" ]
+          resources:
+            requests:
+              cpu: 25m
+              memory: 50mi
 
       volumes:
         - name: pod-info

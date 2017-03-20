@@ -79,7 +79,7 @@ spec:
         name: data
         annotations:
           volume.beta.kubernetes.io/storage-class: "ssd"
-          gcp-auto-snapshot: "true"
+          gcp-auto-backup: "yes"
       spec:
         accessModes: [ "ReadWriteOnce" ]
         resources:

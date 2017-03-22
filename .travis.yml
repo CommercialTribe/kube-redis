@@ -7,14 +7,12 @@ env:
     - CLOUDSDK_CONTAINER_USE_CLIENT_CERTIFICATE=True
 before_deploy:
   # Authorize with gcloud
+  - echo $GCLOUD_ENCODED_CREDS | base64 -d > /tmp/gcloud.json
+  - gcloud auth activate-service-account $(jq -r ".client_email" /tmp/gcloud.json) --key-file=/tmp/gcloud.json
   - >
     if [[ -n "$TRAVIS_TAG" ]] ; then
-      echo $GCLOUD_ENCODED_CREDS | base64 -d > /tmp/gcloud.json &&
-      gcloud auth activate-service-account $(jq -r ".client_email" /tmp/gcloud.json) --key-file=/tmp/gcloud.json &&
       gcloud container clusters get-credentials production --project=commercial-tribe --zone=us-east1-c;
     else
-      echo $GCLOUD_ENCODED_STAGING_CREDS | base64 -d > /tmp/gcloud.json &&
-      gcloud auth activate-service-account $(jq -r ".client_email" /tmp/gcloud.json) --key-file=/tmp/gcloud.json &&
       gcloud container clusters get-credentials staging --project=commercial-tribe-staging --zone=us-central1-a;
     fi
 
@@ -22,9 +20,6 @@ before_deploy:
   - CLOUDSDK_CORE_DISABLE_PROMPTS=true sudo gcloud components update kubectl --version 142.0.0
   - export PATH=/usr/lib/google-cloud-sdk/bin:$PATH
   - sudo chown -R $USER /home/travis/.config/gcloud
-
-  # Authorize docker for access to gcloud
-  - gcloud docker --authorize-only
 deploy:
   - provider: script
     script: ./build-and-push.sh

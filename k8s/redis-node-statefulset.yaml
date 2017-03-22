@@ -49,7 +49,7 @@ spec:
           resources:
             requests:
               cpu: 25m
-              memory: 50mi
+              memory: 50Mi
           livenessProbe: &healthcheck
             exec:
               command: [ "redis-cli", "-p", "26379", "ping" ]
@@ -74,7 +74,7 @@ spec:
           resources:
             requests:
               cpu: 25m
-              memory: 50mi
+              memory: 50Mi
 
       volumes:
         - name: pod-info

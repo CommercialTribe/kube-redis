@@ -92,6 +92,7 @@ hosts(){
 }
 
 boot(){
+  set-role-label "none" # set roll label to nothing
   sleep $(($failover_timeout / 1000))
   ping-both
   master=$(active-master)
@@ -103,8 +104,6 @@ boot(){
   fi
   echo "Ready!"
   touch booted
-
-  set-role-label "none" # set roll label to nothing
 }
 
 set-role-label(){

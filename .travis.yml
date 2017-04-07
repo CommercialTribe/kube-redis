@@ -24,7 +24,7 @@ deploy:
   - provider: script
     script: ./build-and-push.sh
     on:
-      branch: master
+      all_branches: true
   - provider: script
     script: ./deploy.sh gke_commercial-tribe-staging_us-central1-a_staging develop
     on:

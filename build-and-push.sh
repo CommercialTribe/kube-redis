@@ -6,6 +6,7 @@ login(){
 }
 
 push(){
+  if docker pull $image ; then exit 1 ; fi
   docker push $image
 }
 

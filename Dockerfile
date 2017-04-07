@@ -5,6 +5,6 @@ ADD https://storage.googleapis.com/kubernetes-release/release/v1.5.3/bin/linux/a
 RUN chmod +x /usr/local/bin/kubectl
 
 WORKDIR /app
-ADD sidecar.sh /app/sidecar.sh
+ADD . /app
 RUN chmod +x /app/sidecar.sh
 CMD /app/sidecar.sh

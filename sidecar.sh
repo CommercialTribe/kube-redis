@@ -5,7 +5,7 @@ set -e
 # Set vars
 ip=${POD_IP-`hostname -i`}                                  # ip address of pod
 redis_port=${NODE_PORT_NUMBER-6379}                         # redis port
-sentinel_port=${SENTINEL_PORT_NUMBER-26379}                    # sentinel port
+sentinel_port=${SENTINEL_PORT_NUMBER-26379}                 # sentinel port
 group_name="$POD_NAMESPACE-$(hostname | sed 's/-[0-9]$//')" # master group name
 quorum="${SENTINEL_QUORUM-2}"                               # quorum needed
 
@@ -17,12 +17,30 @@ parallel_syncs=${PARALEL_SYNCS-1}
 # Get all the kubernetes pods
 labels=`echo $(cat /etc/pod-info/labels) | tr -d '"' | tr " " ","`
 
+try_step_interval=${TRY_STEP_INTERVAL-"1"}
+max_tries=${MAX_TRIES-"3"}
+retry() {
+  local tries=0
+  until $@ ; do
+    status=$?
+    tries=$(($tries + 1))
+    if [ $tries -gt $max_tries ] ; then
+      >&2 echo "Failed to run \`$@\` after $max_tries tries..."
+      return $status
+    fi
+    sleepsec=$(($tries * $try_step_interval))
+    >&2 echo "Failed: \`$@\`, retyring in $sleepsec seconds..."
+    sleep $sleepsec
+  done
+  return $?
+}
+
 cli(){
-  redis-cli -p $redis_port $@
+  retry redis-cli -p $redis_port $@
 }
 
 sentinel-cli(){
-  redis-cli -p $sentinel_port $@
+  retry redis-cli -p $sentinel_port $@
 }
 
 ping() {
@@ -75,7 +93,7 @@ hosts(){
 
 boot(){
   sleep $(($failover_timeout / 1000))
-  ping-both || exit 1
+  ping-both
   master=$(active-master)
   if [[ -n "$master" ]] ; then
     become-slave-of $master
@@ -85,6 +103,12 @@ boot(){
   fi
   echo "Ready!"
   touch booted
+
+  set-role-label "none" # set roll label to nothing
+}
+
+set-role-label(){
+  kubectl label --overwrite pods `hostname` role=$1
 }
 
 monitor-label(){
@@ -93,7 +117,7 @@ monitor-label(){
     ping-both || exit 1
     current_role=`role`
     if [[ "$last_role" != "$current_role" ]] ; then
-      kubectl label --overwrite pods `hostname` role=$current_role
+      set-role-label $current_role
       last_role=$current_role
     fi
     sleep 1

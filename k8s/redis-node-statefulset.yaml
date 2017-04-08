@@ -15,7 +15,7 @@ spec:
       terminationGracePeriodSeconds: 10
       containers:
         # Redis
-        - name: redis
+        - name: redis-node
           image: redis:3.2
           command:
             - redis-server
@@ -40,7 +40,7 @@ spec:
             <<: *healthcheck
 
         # Sentinel
-        - name: sentinel
+        - name: redis-sentinel
           image: redis:3.2
           command: [ "bash", "-c", "touch sentinel.conf && redis-sentinel sentinel.conf" ]
           ports:
@@ -57,8 +57,8 @@ spec:
             <<: *healthcheck
 
         # Sidecar
-        - name: sidecar
-          image: commercialtribe/redis-sentinel-sidecar:latest
+        - name: redis-sidecar
+          image: commercialtribe/redis-sentinel-sidecar:v20170407.1
           imagePullPolicy: Always
           env:
             - name: POD_NAMESPACE

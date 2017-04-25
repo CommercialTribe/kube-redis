@@ -36,11 +36,11 @@ retry() {
 }
 
 cli(){
-  retry redis-cli -p $redis_port $@
+  retry timeout 5 redis-cli -p $redis_port $@
 }
 
 sentinel-cli(){
-  retry redis-cli -p $sentinel_port $@
+  retry timeout 5 redis-cli -p $sentinel_port $@
 }
 
 ping() {

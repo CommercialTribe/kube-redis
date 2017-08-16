@@ -153,7 +153,7 @@ log () {
 
 # debug
 debug () {
-  if [ "$DEBUG" = "true" ] ; then
+  if [ "$VERBOSE" = "true" ] || [ "$DEBUG" = "true" ] ; then
     >&2 echo $@
   fi
 }

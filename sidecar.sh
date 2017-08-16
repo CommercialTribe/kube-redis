@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -e
-[[ $DEBUG == "true" ]] && set -x
+[ "$DEBUG" == "true" ] && set -x
 
 # Set vars
 ip=${POD_IP-`hostname -i`}                                  # ip address of pod
@@ -25,7 +25,7 @@ retry() {
   until $@ ; do
     status=$?
     tries=$(($tries + 1))
-    if [ $tries -gt $max_tries ] ; then
+    if [ "$tries" -gt "$max_tries" ] ; then
       log "failed to run \`$@\` after $max_tries tries..."
       return $status
     fi
@@ -163,12 +163,12 @@ monitor-state(){
     current_role=`role`
 
     # Don't ever allow multiple masters
-    $active_master = $(active-master)
-    if [ "$current_role" = "master" ] && [ -n "$active_master" ] && [ "$active_master" != $ip ] ; then
+    active_master=$(active-master)
+    if [ "$current_role" = "master" ] && [ -n "$active_master" ] && [ "$active_master" != "$ip" ] ; then
       # If I am a master and not the active one, then just become a slave
       log "not the active master!"
-      become-slave-of $(active-master)
-    elif [[ "$last_role" != "$current_role" ]] ; then
+      become-slave-of $active_master
+    elif [ "$last_role" != "$current_role" ] ; then
       # Monitor the role, if it changes, set the label accordingly
       set-role-label $current_role
       last_role=$current_role

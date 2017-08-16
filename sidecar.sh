@@ -125,18 +125,6 @@ boot(){
   # if not, exit with an error
   ping-both || panic "redis and/or sentinel is not up"
 
-  # Store the current active-master to a variable
-  master=$(active-master)
-
-  if [[ -n "$master" ]] ; then
-    # There is a master, become a slave
-    become-slave-of $master
-  else
-    # There is not active master, so become the master
-    log "booted as master"
-    sentinel-monitor $ip
-  fi
-  log "node ready!"
   touch booted
 }
 
@@ -164,7 +152,7 @@ panic () {
   exit 1
 }
 
-monitor-label(){
+monitor-state(){
   last_role=none
   while true ; do
     # Check to ensure both the sentinel and redis are up,
@@ -174,24 +162,20 @@ monitor-label(){
     # Store the current role to a variable
     current_role=`role`
 
-    # Monitor the role, if it changes, set the label accordingly
-    if [[ "$last_role" != "$current_role" ]] ; then
+    # Don't ever allow multiple masters
+    $active_master = $(active-master)
+    if [ "$current_role" = "master" ] && [ -n "$active_master" ] && [ "$active_master" != $ip ] ; then
+      # If I am a master and not the active one, then just become a slave
+      log "not the active master!"
+      become-slave-of $(active-master)
+    else if [[ "$last_role" != "$current_role" ]] ; then
+      # Monitor the role, if it changes, set the label accordingly
       set-role-label $current_role
       last_role=$current_role
-    fi
-
-    # Don't ever allow multiple masters
-    if [ "$current_role" = "master" ] ; then
-      $active_master = $(active-master)
-      if [ -n "$active_master" ] && [ "$active_master" != $ip ] ; then
-        # If I am a master and not the active one, then just become a slave
-        log "not the active master!"
-        become-slave-of $(active-master)
-      fi
     fi
     sleep 1
   done
 }
 
 boot
-monitor-label
+monitor-state

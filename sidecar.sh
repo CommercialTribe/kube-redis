@@ -3,6 +3,7 @@ set -e
 [ "$DEBUG" == "true" ] && set -x
 
 # Set vars
+hostname=`hostname`                                         # hostname of pod
 ip=${POD_IP-`hostname -i`}                                  # ip address of pod
 redis_port=${NODE_PORT_NUMBER-6379}                         # redis port
 sentinel_port=${SENTINEL_PORT_NUMBER-26379}                 # sentinel port
@@ -74,17 +75,17 @@ become-slave-of() {
   host=$1
   log "becoming a slave of $host"
   sentinel-monitor $host
-  cli slaveof $host $redis_port
+  cli slaveof $host $redis_port > /dev/null
 }
 
 # Tell sentinel to monitor a particular master
 sentinel-monitor() {
   host=$1
-  sentinel-cli sentinel remove $group_name
-  sentinel-cli sentinel monitor $group_name $host $redis_port $quorum
-  sentinel-cli sentinel set $group_name down-after-milliseconds $down_after_milliseconds
-  sentinel-cli sentinel set $group_name failover-timeout $failover_timeout
-  sentinel-cli sentinel set $group_name parallel-syncs $parallel_syncs
+  sentinel-cli sentinel remove $group_name &> /dev/null
+  sentinel-cli sentinel monitor $group_name $host $redis_port $quorum > /dev/null
+  sentinel-cli sentinel set $group_name down-after-milliseconds $down_after_milliseconds > /dev/null
+  sentinel-cli sentinel set $group_name failover-timeout $failover_timeout > /dev/null
+  sentinel-cli sentinel set $group_name parallel-syncs $parallel_syncs > /dev/null
 }
 
 # Find the first host that identifys as a master
@@ -130,8 +131,8 @@ boot(){
 
 # Set the role label on the pod to the specified value
 set-role-label(){
-  log "setting role label to $1"
-  kubectl label --overwrite pods `hostname` role=$1
+  log "pod \"$hostname\" labeled with \"role=$1\""
+  kubectl label --overwrite pods `hostname` role=$1 > /dev/null
 }
 
 # Print a message to stderr
@@ -166,7 +167,7 @@ monitor-state(){
     active_master=$(active-master)
     if [ "$current_role" = "master" ] && [ -n "$active_master" ] && [ "$active_master" != "$ip" ] ; then
       # If I am a master and not the active one, then just become a slave
-      log "not the active master!"
+      log "ALERT: dual master detected"
       become-slave-of $active_master
     elif [ "$last_role" != "$current_role" ] ; then
       # Monitor the role, if it changes, set the label accordingly

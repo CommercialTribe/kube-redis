@@ -25,11 +25,11 @@ retry() {
     status=$?
     tries=$(($tries + 1))
     if [ $tries -gt $max_tries ] ; then
-      >&2 echo "Failed to run \`$@\` after $max_tries tries..."
+      echoerr "Failed to run \`$@\` after $max_tries tries..."
       return $status
     fi
     sleepsec=$(($tries * $try_step_interval))
-    >&2 echo "Failed: \`$@\`, retyring in $sleepsec seconds..."
+    echoerr "Failed: \`$@\`, retyring in $sleepsec seconds..."
     sleep $sleepsec
   done
   return $?
@@ -63,6 +63,7 @@ role() {
 become-slave-of() {
   host=$1
   cli slaveof $host $redis_port
+  sentinel-monitor $1
 }
 
 sentinel-monitor() {
@@ -91,33 +92,70 @@ hosts(){
   | sed "s/ $//" | tr " " "\n" | grep -E "^[0-9]" | grep --invert-match $ip
 }
 
+# Boot the sidecar
 boot(){
-  set-role-label "none" # set roll label to nothing
+  # set roll label to "none"
+  set-role-label "none"
+
+  # wait, as things may still be failing over
   sleep $(($failover_timeout / 1000))
-  ping-both
+
+  # Check to ensure both the sentinel and redis are up,
+  # if not, exit with an error
+  ping-both || panic "redis and/or sentinel is not up"
+
+  # Store the current active-master to a variable
   master=$(active-master)
+
   if [[ -n "$master" ]] ; then
+    # There is a master, become a slave
     become-slave-of $master
-    sentinel-monitor $master
   else
+    # There is not active master, so become the master
     sentinel-monitor $ip
   fi
   echo "Ready!"
   touch booted
 }
 
+# Set the role label on the pod to the specified value
 set-role-label(){
   kubectl label --overwrite pods `hostname` role=$1
+}
+
+# Print a message to stderr
+echoerr () {
+  >&2 echo $1
+}
+
+# Exit, printing an error message
+panic () {
+  echoerr $1
+  exit 1
 }
 
 monitor-label(){
   last_role=none
   while true ; do
-    ping-both || exit 1
+    # Check to ensure both the sentinel and redis are up,
+    # if not, exit with an error
+    ping-both || panic "redis and/or sentinel is not up"
+
+    # Store the current role to a variable
     current_role=`role`
+
+    # Monitor the role, if it changes, set the label accordingly
     if [[ "$last_role" != "$current_role" ]] ; then
       set-role-label $current_role
       last_role=$current_role
+    fi
+
+    # Don't ever allow multiple masters
+    if [ "$current_role" = "master" ] ; then
+      if [ `active-master` != $ip ] ; then
+        # If I am a master and not the active one, then just become a slave
+        become-slave-of $master
+      fi
     fi
     sleep 1
   done

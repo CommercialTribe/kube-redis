@@ -38,13 +38,13 @@ retry() {
 
 # Call the cli for the redis instance
 cli(){
-  log redis-cli -p $redis_port $@
+  debug redis-cli -p $redis_port $@
   retry timeout 5 redis-cli -p $redis_port $@
 }
 
 # Call the cli for the sentinel instance
 sentinel-cli(){
-  log redis-cli -p $sentinel_port $@
+  debug redis-cli -p $sentinel_port $@
   retry timeout 5 redis-cli -p $sentinel_port $@
 }
 
@@ -91,15 +91,15 @@ sentinel-monitor() {
 active-master(){
   master=""
   for host in `hosts` ; do
-    log "checking to see if '$host' is master..."
+    debug "checking to see if '$host' is master..."
     if [ "$(role $host)" = "master" ] ; then
-      log "found master: '$host'"
+      debug "found master: '$host'"
       master=$host
       break
     fi
   done
   if [ -z "$master" ] ; then
-    log "found no active master"
+    debug "found no active master"
   fi
   echo -n $master
 }
@@ -149,6 +149,13 @@ set-role-label(){
 # Print a message to stderr
 log () {
   >&2 echo $@
+}
+
+# debug
+debug () {
+  if [ "$DEBUG" = "true" ] ; then
+    >&2 echo $@
+  fi
 }
 
 # Exit, printing an error message

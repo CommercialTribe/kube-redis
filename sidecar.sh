@@ -108,7 +108,7 @@ active-master(){
 hosts(){
   kubectl get pods -l=$labels \
     --template="{{range \$i, \$e :=.items}}{{\$e.status.podIP}} {{end}}" \
-  | sed "s/ $//" | tr " " "\n" | grep -E "^[0-9]" | grep --invert-match $ip
+  | sed "s/ $//" | tr " " "\n" | grep -E "^[0-9]"
 }
 
 # Boot the sidecar

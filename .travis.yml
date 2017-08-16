@@ -17,18 +17,14 @@ before_deploy:
     fi
 
   # Install and configure kubectl
-  - CLOUDSDK_CORE_DISABLE_PROMPTS=true sudo gcloud components update kubectl --version 142.0.0
-  - export PATH=/usr/lib/google-cloud-sdk/bin:$PATH
-  - sudo chown -R $USER /home/travis/.config/gcloud
+  - curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+  - chmod +x ./kubectl
+  - sudo mv ./kubectl /usr/local/bin/kubectl
 deploy:
   - provider: script
     script: ./build-and-push.sh
     on:
       all_branches: true
-  - provider: script
-    script: ./deploy.sh gke_commercial-tribe-staging_us-central1-a_staging develop
-    on:
-      branch: develop
   - provider: script
     script: ./deploy.sh gke_commercial-tribe-staging_us-central1-a_staging staging
     on:

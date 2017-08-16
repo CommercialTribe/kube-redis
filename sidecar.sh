@@ -26,11 +26,11 @@ retry() {
     status=$?
     tries=$(($tries + 1))
     if [ $tries -gt $max_tries ] ; then
-      echoerr "Failed to run \`$@\` after $max_tries tries..."
+      echoerr "failed to run \`$@\` after $max_tries tries..."
       return $status
     fi
     sleepsec=$(($tries * $try_step_interval))
-    echoerr "Failed: \`$@\`, retyring in $sleepsec seconds..."
+    echoerr "failed: \`$@\`, retyring in $sleepsec seconds..."
     sleep $sleepsec
   done
   return $?
@@ -70,7 +70,7 @@ role() {
 # Convert this node to a slave of the specified master
 become-slave-of() {
   host=$1
-  echo "Becoming slave of $host"
+  echo "becoming a slave of $host"
   cli slaveof $host $redis_port
   sentinel-monitor $1
 }
@@ -124,14 +124,16 @@ boot(){
     become-slave-of $master
   else
     # There is not active master, so become the master
+    echo "booted as master"
     sentinel-monitor $ip
   fi
-  echo "Ready!"
+  echo "node ready!"
   touch booted
 }
 
 # Set the role label on the pod to the specified value
 set-role-label(){
+  echo "setting role label to $1"
   kubectl label --overwrite pods `hostname` role=$1
 }
 

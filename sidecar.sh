@@ -17,6 +17,7 @@ parallel_syncs=${PARALEL_SYNCS-1}
 # Get all the kubernetes pods
 labels=`echo $(cat /etc/pod-info/labels) | tr -d '"' | tr " " ","`
 
+# Retry a command until max tries is reached
 try_step_interval=${TRY_STEP_INTERVAL-"1"}
 max_tries=${MAX_TRIES-"3"}
 retry() {
@@ -25,46 +26,55 @@ retry() {
     status=$?
     tries=$(($tries + 1))
     if [ $tries -gt $max_tries ] ; then
-      >&2 echo "Failed to run \`$@\` after $max_tries tries..."
+      echoerr "Failed to run \`$@\` after $max_tries tries..."
       return $status
     fi
     sleepsec=$(($tries * $try_step_interval))
-    >&2 echo "Failed: \`$@\`, retyring in $sleepsec seconds..."
+    echoerr "Failed: \`$@\`, retyring in $sleepsec seconds..."
     sleep $sleepsec
   done
   return $?
 }
 
+# Call the cli for the redis instance
 cli(){
-  retry redis-cli -p $redis_port $@
+  retry timeout 5 redis-cli -p $redis_port $@
 }
 
+# Call the cli for the sentinel instance
 sentinel-cli(){
-  retry redis-cli -p $sentinel_port $@
+  retry timeout 5 redis-cli -p $sentinel_port $@
 }
 
+# Ping redis to see if it is up
 ping() {
   cli ping > /dev/null
 }
 
+# Ping sentinel to see if it is up
 ping-sentinel() {
   sentinel-cli ping > /dev/null
 }
 
+# Ping redis and sentinel to see if they are up
 ping-both(){
   ping && ping-sentinel
 }
 
+# Get the role for this node or the specified ip/host
 role() {
   host=${1-"127.0.0.1"}
   (cli -h $host info || echo -n "role:none") | grep "role:" | sed "s/role://" | tr -d "\n" | tr -d "\r"
 }
 
+# Convert this node to a slave of the specified master
 become-slave-of() {
   host=$1
   cli slaveof $host $redis_port
+  sentinel-monitor $1
 }
 
+# Tell sentinel to monitor a particular master
 sentinel-monitor() {
   host=$1
   sentinel-cli sentinel monitor $group_name $host $redis_port $quorum
@@ -73,6 +83,7 @@ sentinel-monitor() {
   sentinel-cli sentinel set $group_name parallel-syncs $parallel_syncs
 }
 
+# Find the first host that identifys as a master
 active-master(){
   master=""
   for host in `hosts` ; do
@@ -84,6 +95,7 @@ active-master(){
   echo -n $master
 }
 
+# Get all the current redis-node ips
 hosts(){
   echo ""
   kubectl get pods -l=$labels \
@@ -91,33 +103,70 @@ hosts(){
   | sed "s/ $//" | tr " " "\n" | grep -E "^[0-9]" | grep --invert-match $ip
 }
 
+# Boot the sidecar
 boot(){
-  set-role-label "none" # set roll label to nothing
+  # set roll label to "none"
+  set-role-label "none"
+
+  # wait, as things may still be failing over
   sleep $(($failover_timeout / 1000))
-  ping-both
+
+  # Check to ensure both the sentinel and redis are up,
+  # if not, exit with an error
+  ping-both || panic "redis and/or sentinel is not up"
+
+  # Store the current active-master to a variable
   master=$(active-master)
+
   if [[ -n "$master" ]] ; then
+    # There is a master, become a slave
     become-slave-of $master
-    sentinel-monitor $master
   else
+    # There is not active master, so become the master
     sentinel-monitor $ip
   fi
   echo "Ready!"
   touch booted
 }
 
+# Set the role label on the pod to the specified value
 set-role-label(){
   kubectl label --overwrite pods `hostname` role=$1
+}
+
+# Print a message to stderr
+echoerr () {
+  >&2 echo $1
+}
+
+# Exit, printing an error message
+panic () {
+  echoerr $1
+  exit 1
 }
 
 monitor-label(){
   last_role=none
   while true ; do
-    ping-both || exit 1
+    # Check to ensure both the sentinel and redis are up,
+    # if not, exit with an error
+    ping-both || panic "redis and/or sentinel is not up"
+
+    # Store the current role to a variable
     current_role=`role`
+
+    # Monitor the role, if it changes, set the label accordingly
     if [[ "$last_role" != "$current_role" ]] ; then
       set-role-label $current_role
       last_role=$current_role
+    fi
+
+    # Don't ever allow multiple masters
+    if [ "$current_role" = "master" ] ; then
+      if [ `active-master` != $ip ] ; then
+        # If I am a master and not the active one, then just become a slave
+        become-slave-of $master
+      fi
     fi
     sleep 1
   done

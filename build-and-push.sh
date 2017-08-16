@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-image="commercialtribe/redis-sentinel-sidecar:v20170407.1"
+image="commercialtribe/redis-sentinel-sidecar:v20170425.0"
 
 login(){
   docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD

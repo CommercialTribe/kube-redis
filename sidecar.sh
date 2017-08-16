@@ -98,6 +98,9 @@ active-master(){
       break
     fi
   done
+  if [ -z "$master" ] ; then
+    log "found no active master"
+  fi
   echo -n $master
 }
 
@@ -145,7 +148,7 @@ set-role-label(){
 
 # Print a message to stderr
 log () {
-  >&2 echo $1
+  >&2 echo $@
 }
 
 # Exit, printing an error message

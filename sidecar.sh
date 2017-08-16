@@ -168,7 +168,7 @@ monitor-state(){
       # If I am a master and not the active one, then just become a slave
       log "not the active master!"
       become-slave-of $(active-master)
-    else if [[ "$last_role" != "$current_role" ]] ; then
+    elif [[ "$last_role" != "$current_role" ]] ; then
       # Monitor the role, if it changes, set the label accordingly
       set-role-label $current_role
       last_role=$current_role

@@ -156,10 +156,6 @@ panic () {
 monitor-state(){
   last_role=none
   while true ; do
-    # Check to ensure both the sentinel and redis are up,
-    # if not, exit with an error
-    ping-both || panic "redis and/or sentinel is not up"
-
     # Store the current role to a variable
     current_role=`role`
 

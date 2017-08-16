@@ -70,6 +70,7 @@ role() {
 # Convert this node to a slave of the specified master
 become-slave-of() {
   host=$1
+  echo "Becoming slave of $host"
   cli slaveof $host $redis_port
   sentinel-monitor $1
 }
@@ -165,7 +166,7 @@ monitor-label(){
     if [ "$current_role" = "master" ] ; then
       if [ "$(active-master)" != $ip ] ; then
         # If I am a master and not the active one, then just become a slave
-        become-slave-of $master
+        become-slave-of $(active-master)
       fi
     fi
     sleep 1

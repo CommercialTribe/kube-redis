@@ -73,8 +73,8 @@ role() {
 become-slave-of() {
   host=$1
   echo "becoming a slave of $host"
-  cli slaveof $host $redis_port
   sentinel-monitor $host
+  cli slaveof $host $redis_port
 }
 
 # Tell sentinel to monitor a particular master
@@ -108,6 +108,8 @@ hosts(){
 
 # Boot the sidecar
 boot(){
+  echo "booting $ip"
+
   # set roll label to "none"
   set-role-label "none"
 
@@ -171,7 +173,7 @@ monitor-label(){
       if [ -n "$(active-master)" ] ; then
         if [ "$(active-master)" != $ip ] ; then
           # If I am a master and not the active one, then just become a slave
-          echoerr "not the active master, switching to slave..."
+          echoerr "not the active master!"
           become-slave-of $(active-master)
         fi
       fi

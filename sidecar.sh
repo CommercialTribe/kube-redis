@@ -80,6 +80,7 @@ become-slave-of() {
 # Tell sentinel to monitor a particular master
 sentinel-monitor() {
   host=$1
+  sentinel-cli sentinel remove $group_name
   sentinel-cli sentinel monitor $group_name $host $redis_port $quorum
   sentinel-cli sentinel set $group_name down-after-milliseconds $down_after_milliseconds
   sentinel-cli sentinel set $group_name failover-timeout $failover_timeout
@@ -108,7 +109,7 @@ hosts(){
 
 # Boot the sidecar
 boot(){
-  echo "booting $ip"
+  echo "booting $"
 
   # set roll label to "none"
   set-role-label "none"

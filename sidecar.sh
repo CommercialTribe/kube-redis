@@ -17,6 +17,7 @@ parallel_syncs=${PARALEL_SYNCS-1}
 # Get all the kubernetes pods
 labels=`echo $(cat /etc/pod-info/labels) | tr -d '"' | tr " " ","`
 
+# Retry a command until max tries is reached
 try_step_interval=${TRY_STEP_INTERVAL-"1"}
 max_tries=${MAX_TRIES-"3"}
 retry() {
@@ -35,37 +36,45 @@ retry() {
   return $?
 }
 
+# Call the cli for the redis instance
 cli(){
   retry timeout 5 redis-cli -p $redis_port $@
 }
 
+# Call the cli for the sentinel instance
 sentinel-cli(){
   retry timeout 5 redis-cli -p $sentinel_port $@
 }
 
+# Ping redis to see if it is up
 ping() {
   cli ping > /dev/null
 }
 
+# Ping sentinel to see if it is up
 ping-sentinel() {
   sentinel-cli ping > /dev/null
 }
 
+# Ping redis and sentinel to see if they are up
 ping-both(){
   ping && ping-sentinel
 }
 
+# Get the role for this node or the specified ip/host
 role() {
   host=${1-"127.0.0.1"}
   (cli -h $host info || echo -n "role:none") | grep "role:" | sed "s/role://" | tr -d "\n" | tr -d "\r"
 }
 
+# Convert this node to a slave of the specified master
 become-slave-of() {
   host=$1
   cli slaveof $host $redis_port
   sentinel-monitor $1
 }
 
+# Tell sentinel to monitor a particular master
 sentinel-monitor() {
   host=$1
   sentinel-cli sentinel monitor $group_name $host $redis_port $quorum
@@ -74,6 +83,7 @@ sentinel-monitor() {
   sentinel-cli sentinel set $group_name parallel-syncs $parallel_syncs
 }
 
+# Find the first host that identifys as a master
 active-master(){
   master=""
   for host in `hosts` ; do
@@ -85,6 +95,7 @@ active-master(){
   echo -n $master
 }
 
+# Get all the current redis-node ips
 hosts(){
   echo ""
   kubectl get pods -l=$labels \

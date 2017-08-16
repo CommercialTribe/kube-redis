@@ -38,11 +38,13 @@ retry() {
 
 # Call the cli for the redis instance
 cli(){
+  echo redis-cli -p $redis_port $@
   retry timeout 5 redis-cli -p $redis_port $@
 }
 
 # Call the cli for the sentinel instance
 sentinel-cli(){
+  echo redis-cli -p $sentinel_port $@
   retry timeout 5 redis-cli -p $sentinel_port $@
 }
 
@@ -72,7 +74,7 @@ become-slave-of() {
   host=$1
   echo "becoming a slave of $host"
   cli slaveof $host $redis_port
-  sentinel-monitor $1
+  sentinel-monitor $host
 }
 
 # Tell sentinel to monitor a particular master

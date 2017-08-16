@@ -109,7 +109,7 @@ hosts(){
 
 # Boot the sidecar
 boot(){
-  echo "booting $"
+  echo "booting: $ip"
 
   # set roll label to "none"
   set-role-label "none"

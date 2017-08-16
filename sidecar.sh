@@ -122,6 +122,9 @@ boot(){
   # wait, as things may still be failing over
   sleep $(($failover_timeout / 1000))
 
+  # Montior this host by default
+  sentinel-monitor $ip
+
   # Check to ensure both the sentinel and redis are up,
   # if not, exit with an error
   ping-both || panic "redis and/or sentinel is not up"

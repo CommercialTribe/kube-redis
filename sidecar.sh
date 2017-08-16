@@ -167,7 +167,7 @@ monitor-state(){
     active_master=$(active-master)
     if [ "$current_role" = "master" ] && [ -n "$active_master" ] && [ "$active_master" != "$ip" ] ; then
       # If I am a master and not the active one, then just become a slave
-      log "ALERT: dual master detected"
+      if [ "$last_role" != "none" ] then ; log "ALERT: dual master detected" ; fi
       become-slave-of $active_master
     elif [ "$last_role" != "$current_role" ] ; then
       # Monitor the role, if it changes, set the label accordingly

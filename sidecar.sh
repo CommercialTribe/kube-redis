@@ -166,9 +166,12 @@ monitor-label(){
 
     # Don't ever allow multiple masters
     if [ "$current_role" = "master" ] ; then
-      if [ "$(active-master)" != $ip ] ; then
-        # If I am a master and not the active one, then just become a slave
-        become-slave-of $(active-master)
+      if [ -n "$(active-master)" ] ; then
+        if [ "$(active-master)" != $ip ] ; then
+          # If I am a master and not the active one, then just become a slave
+          echoerr "not the active master, switching to slave..."
+          become-slave-of $(active-master)
+        fi
       fi
     fi
     sleep 1

@@ -169,7 +169,7 @@ log () {
   shift
   message="$@"
   if [ "$wanted_level" -ge "$log_level" ] ; then
-    echo "$hostname $label: $message"
+    >&2 echo "$hostname $label: $message"
   fi
 }
 

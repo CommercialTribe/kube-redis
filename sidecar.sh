@@ -27,11 +27,11 @@ retry() {
     status=$?
     tries=$(($tries + 1))
     if [ "$tries" -gt "$max_tries" ] ; then
-      log "failed to run \`$@\` after $max_tries tries..."
+      log ERROR "failed to run \`$@\` after $max_tries tries..."
       return $status
     fi
     sleepsec=$(($tries * $try_step_interval))
-    log "failed: \`$@\`, retyring in $sleepsec seconds..."
+    log ERROR "failed: \`$@\`, retyring in $sleepsec seconds..."
     sleep $sleepsec
   done
   return $?
@@ -39,13 +39,13 @@ retry() {
 
 # Call the cli for the redis instance
 cli(){
-  debug redis-cli -p $redis_port $@
+  log DEBUG redis-cli -p $redis_port $@
   retry timeout 5 redis-cli -p $redis_port $@
 }
 
 # Call the cli for the sentinel instance
 sentinel-cli(){
-  debug redis-cli -p $sentinel_port $@
+  log DEBUG redis-cli -p $sentinel_port $@
   retry timeout 5 redis-cli -p $sentinel_port $@
 }
 
@@ -73,7 +73,7 @@ role() {
 # Convert this node to a slave of the specified master
 become-slave-of() {
   host=$1
-  log "becoming a slave of $host"
+  log INFO "becoming a slave of $host"
   sentinel-monitor $host
   cli slaveof $host $redis_port > /dev/null
 }
@@ -91,30 +91,30 @@ sentinel-monitor() {
 # Find the first host that identifys as a master
 active-master(){
   master=""
-  for host in `hosts` ; do
-    debug "checking to see if '$host' is master..."
+  for host in `get-hosts` ; do
+    log DEBUG "checking to see if '$host' is master..."
     if [ "$(role $host)" = "master" ] ; then
-      debug "found master: '$host'"
+      log DEBUG "found master: '$host'"
       master=$host
       break
     fi
   done
   if [ -z "$master" ] ; then
-    debug "found no active master"
+    log DEBUG "found no active master"
   fi
   echo -n $master
 }
 
 # Get all the current redis-node ips
-hosts(){
-  kubectl get pods -l=$labels \
+get-hosts(){
+  (kubectl get pods -l=$labels \
     --template="{{range \$i, \$e :=.items}}{{\$e.status.podIP}} {{end}}" \
-  | sed "s/ $//" | tr " " "\n" | grep -E "^[0-9]"
+  | sed "s/ $//" | tr " " "\n" | grep -E "^[0-9]") || panic "get-hosts failed"
 }
 
 # Boot the sidecar
 boot(){
-  log "booting: $ip"
+  log INFO "booting (ip: $ip)"
 
   # set roll label to "none"
   set-role-label "none"
@@ -133,26 +133,50 @@ boot(){
 }
 
 # Set the role label on the pod to the specified value
-set-role-label(){
-  log "pod \"$hostname\" labeled with \"role=$1\""
-  kubectl label --overwrite pods `hostname` role=$1 > /dev/null
+set-role-label () {
+  log INFO "set label \"role=$1\""
+  (kubectl label --overwrite pods `hostname` role=$1 > /dev/null) || panic "set-role-label failed"
+}
+
+log-level-int () {
+  case "$1" in
+    DEBUG)
+      echo "0"
+      ;;
+    INFO)
+      echo "1"
+      ;;
+    WARN)
+      echo "2"
+      ;;
+    ERROR)
+      echo "3"
+      ;;
+    CRITICAL)
+      echo "4"
+      ;;
+    *)
+      echo "99"
+      ;;
+  esac
 }
 
 # Print a message to stderr
 log () {
-  >&2 echo $@
-}
-
-# debug
-debug () {
-  if [ "$VERBOSE" = "true" ] || [ "$DEBUG" = "true" ] ; then
-    >&2 echo $@
+  log_level=`log-level-int $LOG_LEVEL`
+  label=$1
+  wanted_level=`log-level-int $1`
+  shift
+  message="$@"
+  if [ "$wanted_level" -ge "$log_level" ] ; then
+    echo "$hostname $label: $message"
   fi
 }
 
+
 # Exit, printing an error message
 panic () {
-  log $1
+  log CRITICAL $1
   exit 1
 }
 
@@ -166,7 +190,7 @@ monitor-state(){
     active_master=$(active-master)
     if [ "$current_role" = "master" ] && [ -n "$active_master" ] && [ "$active_master" != "$ip" ] ; then
       # If I am a master and not the active one, then just become a slave
-      if [ "$last_role" != "none" ] ; then log "ALERT: dual master detected" ; fi
+      if [ "$last_role" != "none" ] ; then log ERROR "dual master detected" ; fi
       become-slave-of $active_master
     elif [ "$last_role" != "$current_role" ] ; then
       # Monitor the role, if it changes, set the label accordingly
